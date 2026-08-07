@@ -65,17 +65,18 @@ void live_worker(const Config& config, ThreadResult& result, std::int64_t start_
 }
 
 void run_live(const Config& config, Report& report) {
-    if (config.mlock) {
-        const platform::Outcome locked = platform::lock_memory();
-        if (!locked.ok) {
-            report.warnings.push_back("memory not locked: " + locked.message);
-        }
-    }
     const LoadSet load(config);
     const std::int64_t start_ns = platform::now_ns() + kStartDelayNs;
     ThreadGroup group;
     for (ThreadResult& result : report.threads) {
         group.threads.emplace_back(live_worker, std::cref(config), std::ref(result), start_ns);
+    }
+    // Locking after the threads exist keeps a low RLIMIT_MEMLOCK from failing thread creation.
+    if (config.mlock) {
+        const platform::Outcome locked = platform::lock_memory();
+        if (!locked.ok) {
+            report.warnings.push_back("memory not locked: " + locked.message);
+        }
     }
     for (std::thread& thread : group.threads) {
         thread.join();
