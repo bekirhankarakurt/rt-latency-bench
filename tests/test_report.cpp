@@ -58,6 +58,7 @@ TEST(json_is_balanced_and_complete) {
     CHECK_EQ(count(text, '['), count(text, ']'));
     CHECK(text.find("\"mode\": \"simulate\"") != std::string::npos);
     CHECK(text.find("\"p999_us\"") != std::string::npos);
+    CHECK(text.find("\"policy\": \"fifo\", \"priority\": 80") != std::string::npos);
     CHECK(text.find("\"bins\": [[") != std::string::npos);
     CHECK(text.find("quote \\\" and \\\\ slash") != std::string::npos);
 }

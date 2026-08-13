@@ -56,6 +56,8 @@ std::string json_escape(const std::string& text) {
 
 struct Row {
     std::string thread, cpu, policy;
+    std::string policy_name;
+    int priority;
     Summary stats;
     std::uint64_t overruns;
 };
@@ -64,11 +66,12 @@ std::vector<Row> rows_of(const Report& report) {
     std::vector<Row> rows;
     for (const ThreadResult& t : report.threads) {
         rows.push_back({std::to_string(t.id), t.cpu < 0 ? "-1" : std::to_string(t.cpu),
-                        describe_policy(t.policy, t.priority), summarize(t.hist), t.overruns});
+                        describe_policy(t.policy, t.priority), to_string(t.policy), t.priority,
+                        summarize(t.hist), t.overruns});
     }
     const ThreadResult& first = report.threads.front();
     rows.push_back({"all", "-1", describe_policy(first.policy, first.priority),
-                    summarize(merged_histogram(report)), total_overruns(report)});
+                    to_string(first.policy), first.priority, summarize(merged_histogram(report)), total_overruns(report)});
     return rows;
 }
 
@@ -224,7 +227,7 @@ void write_json(std::ostream& out, const Report& report) {
     const std::vector<Row> rows = rows_of(report);
     for (std::size_t i = 0; i + 1 < rows.size(); ++i) {
         out << "    {\"id\": " << rows[i].thread << ", \"cpu\": " << rows[i].cpu << ", \"policy\": \""
-            << rows[i].policy << "\", ";
+            << rows[i].policy_name << "\", \"priority\": " << rows[i].priority << ", ";
         json_stats(out, rows[i].stats, rows[i].overruns);
         out << (i + 2 < rows.size() ? "},\n" : "}\n");
     }
