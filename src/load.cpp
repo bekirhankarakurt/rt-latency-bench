@@ -18,8 +18,8 @@ namespace {
 // Scratch file removed on destruction; the descriptor is closed first.
 class TempFile {
 public:
-    explicit TempFile(std::filesystem::path path) : path_(std::move(path)) {
-        fd_ = ::open(path_.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0600);
+    explicit TempFile(std::filesystem::path path)
+        : path_(std::move(path)), fd_(::open(path_.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0600)) {
         if (fd_ < 0) {
             throw std::runtime_error("cannot create IO load file " + path_.string() + ": " +
                                      std::generic_category().message(errno));
@@ -43,7 +43,7 @@ public:
 
 private:
     std::filesystem::path path_;
-    int fd_ = -1;
+    int fd_;
 };
 
 void cpu_load(const std::atomic<bool>& stop) {

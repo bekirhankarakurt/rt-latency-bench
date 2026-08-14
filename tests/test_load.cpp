@@ -1,4 +1,5 @@
 #include <chrono>
+#include <iterator>
 #include <filesystem>
 #include <thread>
 
@@ -9,9 +10,8 @@ using namespace rtlb;
 
 namespace {
 std::size_t entries(const std::filesystem::path& dir) {
-    std::size_t n = 0;
-    for ([[maybe_unused]] const auto& e : std::filesystem::directory_iterator(dir)) ++n;
-    return n;
+    return static_cast<std::size_t>(std::distance(std::filesystem::directory_iterator(dir),
+                                                  std::filesystem::directory_iterator()));
 }
 }  // namespace
 

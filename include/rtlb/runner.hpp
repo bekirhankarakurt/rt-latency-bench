@@ -14,12 +14,12 @@ struct ThreadResult {
         : id(thread_id), hist(std::move(histogram)) {}
 
     unsigned id;
-    int cpu = -1;  // -1 = not pinned
-    Policy policy = Policy::Other;  // effective policy
+    int cpu = -1;  ///< -1 = not pinned
+    Policy policy = Policy::Other;  ///< effective policy
     int priority = 0;               // effective priority
     Histogram hist;
     std::uint64_t overruns = 0;
-    std::vector<std::string> notes;  // degraded-mode messages
+    std::vector<std::string> notes;  ///< degraded-mode messages
 };
 
 struct Report {
@@ -29,11 +29,11 @@ struct Report {
     std::vector<std::string> warnings;
 };
 
-// Runs the benchmark described by `config` (live, simulated or replayed).
-// Throws std::runtime_error on unrecoverable errors such as an unreadable replay file.
+/// Runs the benchmark described by `config` (live, simulated or replayed).
+/// Throws std::runtime_error on unrecoverable errors such as an unreadable replay file.
 [[nodiscard]] Report run(const Config& config);
 
-// Asks a running benchmark to finish early; async-signal-safe.
+/// Asks a running benchmark to finish early; async-signal-safe.
 void request_stop() noexcept;
 
 [[nodiscard]] Histogram merged_histogram(const Report& report);

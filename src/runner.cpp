@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <functional>
+#include <numeric>
 #include <stdexcept>
 #include <thread>
 #include <utility>
@@ -21,6 +22,11 @@ std::atomic<bool> g_stop{false};
 constexpr std::int64_t kStartDelayNs = 200'000'000;
 
 struct ThreadGroup {
+    ThreadGroup() = default;
+    ThreadGroup(const ThreadGroup&) = delete;
+    ThreadGroup& operator=(const ThreadGroup&) = delete;
+    ThreadGroup(ThreadGroup&&) = delete;
+    ThreadGroup& operator=(ThreadGroup&&) = delete;
     std::vector<std::thread> threads;
     ~ThreadGroup() {
         for (std::thread& thread : threads) {
@@ -140,11 +146,10 @@ Histogram merged_histogram(const Report& report) {
 }
 
 std::uint64_t total_overruns(const Report& report) noexcept {
-    std::uint64_t sum = 0;
-    for (const ThreadResult& result : report.threads) {
-        sum += result.overruns;
-    }
-    return sum;
+    return std::accumulate(report.threads.begin(), report.threads.end(), std::uint64_t{0},
+                           [](std::uint64_t sum, const ThreadResult& result) {
+                               return sum + result.overruns;
+                           });
 }
 
 }  // namespace rtlb

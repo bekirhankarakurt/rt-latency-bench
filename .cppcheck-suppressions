@@ -1,0 +1,3 @@
+// Test harness counters are mutated through macros; cppcheck cannot see that.
+knownConditionTrueFalse:tests/test.hpp
+missingIncludeSystem

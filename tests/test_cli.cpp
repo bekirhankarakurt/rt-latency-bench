@@ -8,7 +8,7 @@
 using namespace rtlb;
 
 namespace {
-ParseResult parse(std::vector<std::string> args) { return parse_args(args); }
+ParseResult parse(const std::vector<std::string>& args) { return parse_args(args); }
 }  // namespace
 
 TEST(cpu_list_expands_ranges) {
