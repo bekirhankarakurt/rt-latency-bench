@@ -1,0 +1,16 @@
+PROJECT_NAME           = "rt-latency-bench"
+PROJECT_BRIEF          = "Linux real-time latency lab in C++17"
+OUTPUT_DIRECTORY       = docs/api
+INPUT                  = include README.md
+FILE_PATTERNS          = *.hpp *.md
+USE_MDFILE_AS_MAINPAGE = README.md
+RECURSIVE              = YES
+EXTRACT_ALL            = YES
+JAVADOC_AUTOBRIEF      = YES
+MARKDOWN_SUPPORT       = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+HAVE_DOT               = NO
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = NO
+WARN_AS_ERROR          = YES
