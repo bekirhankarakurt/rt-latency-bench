@@ -14,3 +14,4 @@ HAVE_DOT               = NO
 QUIET                  = YES
 WARN_IF_UNDOCUMENTED   = NO
 WARN_AS_ERROR          = YES
+IMAGE_PATH             = docs
