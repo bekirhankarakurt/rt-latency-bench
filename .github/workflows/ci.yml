@@ -43,7 +43,7 @@ jobs:
 
   static-analysis:
     name: clang-tidy + cppcheck
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # pinned so analyser versions stay reproducible
     steps:
       - uses: actions/checkout@v4
       - name: Install tools

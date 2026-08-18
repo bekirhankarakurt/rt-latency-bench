@@ -18,6 +18,7 @@ template <class T>
     }
     T value{};
     const char* const end = text.data() + text.size();
+    // NOLINTNEXTLINE(bugprone-suspicious-stringview-data-usage): the range end is passed explicitly.
     const auto result = std::from_chars(text.data(), end, value);
     if (result.ec != std::errc{} || result.ptr != end) {
         return false;
