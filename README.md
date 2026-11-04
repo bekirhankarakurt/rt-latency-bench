@@ -5,7 +5,7 @@ Measure Linux wake-up latency like `cyclictest` — with SCHED_FIFO/RR, CPU pinn
 [![CI](https://github.com/bekirhankarakurt/rt-latency-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/bekirhankarakurt/rt-latency-bench/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-00599C.svg)](https://en.cppreference.com/w/cpp/17)
-[![Platform: Linux](https://img.shields.io/badge/platform-Linux-informational.svg)](#requirements)
+[![Platform: Linux](https://img.shields.io/badge/platform-Linux-informational.svg)](https://github.com/bekirhankarakurt/rt-latency-bench#requirements)
 
 ## Why / What
 
