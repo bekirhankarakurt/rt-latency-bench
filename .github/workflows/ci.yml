@@ -106,7 +106,7 @@ jobs:
           doxygen Doxyfile
           mv docs/api/html site/api
           cp docs/index.html site/index.html
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
