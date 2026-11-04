@@ -3,9 +3,16 @@
 Measure Linux wake-up latency like `cyclictest` — with SCHED_FIFO/RR, CPU pinning, background load, percentile histograms and CSV/JSON export — in dependency-free modern C++17.
 
 [![CI](https://github.com/bekirhankarakurt/rt-latency-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/bekirhankarakurt/rt-latency-bench/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![CodeQL](https://github.com/bekirhankarakurt/rt-latency-bench/actions/workflows/codeql.yml/badge.svg)](https://github.com/bekirhankarakurt/rt-latency-bench/actions/workflows/codeql.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fbekirhankarakurt.github.io%2Frt-latency-bench%2Fcoverage.json)](https://bekirhankarakurt.github.io/rt-latency-bench/coverage/)
+[![Release](https://img.shields.io/github/v/release/bekirhankarakurt/rt-latency-bench)](https://github.com/bekirhankarakurt/rt-latency-bench/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/bekirhankarakurt/rt-latency-bench/blob/main/LICENSE)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-00599C.svg)](https://en.cppreference.com/w/cpp/17)
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-informational.svg)](https://github.com/bekirhankarakurt/rt-latency-bench#requirements)
+
+![rtlb demo](docs/demo.gif)
+
+**[Documentation](https://bekirhankarakurt.github.io/rt-latency-bench/)** · [API reference](https://bekirhankarakurt.github.io/rt-latency-bench/api/) · [Coverage report](https://bekirhankarakurt.github.io/rt-latency-bench/coverage/) · [Releases](https://github.com/bekirhankarakurt/rt-latency-bench/releases) · [Changelog](https://github.com/bekirhankarakurt/rt-latency-bench/blob/main/CHANGELOG.md)
 
 ## Why / What
 
@@ -54,6 +61,8 @@ overruns            15          37
 Numbers come from a shared virtual machine and are illustrative; run it on your own target.
 
 ## Quick start (60 seconds)
+
+Prebuilt `linux-x86_64` and `linux-aarch64` archives with checksums are attached to each [release](https://github.com/bekirhankarakurt/rt-latency-bench/releases); to build from source:
 
 ```bash
 git clone https://github.com/bekirhankarakurt/rt-latency-bench.git
@@ -189,7 +198,7 @@ ctest --test-dir build --output-on-failure                    # 7 suites, no ext
 cmake -S . -B build-asan -DRTLB_SANITIZE=ON -DRTLB_WERROR=ON && cmake --build build-asan -j && ctest --test-dir build-asan
 ```
 
-Suites cover the histogram maths, CLI parsing, platform wrappers, simulator and replay, load generators (including cleanup of the IO scratch file), the runner (live runs use `SCHED_OTHER` or tolerate fallback, so they pass unprivileged) and every output format. CI builds with GCC and Clang with `-Werror`, plus an ASan/UBSan job.
+Suites cover the histogram maths, CLI parsing, platform wrappers, simulator and replay, load generators (including cleanup of the IO scratch file), the runner (live runs use `SCHED_OTHER` or tolerate fallback, so they pass unprivileged) and every output format. CI builds with GCC and Clang with `-Werror`, runs an ASan/UBSan job, clang-tidy (`.clang-tidy`), cppcheck, CodeQL and line coverage (published with the API docs to GitHub Pages).
 
 ## Troubleshooting / FAQ
 
@@ -226,7 +235,12 @@ Spinning real-time threads can starve kernel threads; keep the priority below IR
 │   └── report.cpp          table, ASCII histogram, CSV, JSON, comparison
 ├── tests/                  dependency-free unit tests (test.hpp harness)
 ├── examples/latencies.txt  sample recording for --replay
-└── .github/workflows/      CI: GCC, Clang, ASan + UBSan
+├── docs/                   demo recording (GIF + asciicast), Pages landing page
+├── scripts/                demo recording and coverage-badge helpers
+├── Doxyfile                API documentation configuration
+├── .clang-tidy             static-analysis configuration
+├── CHANGELOG.md, CONTRIBUTING.md, SECURITY.md
+└── .github/                workflows (CI, CodeQL, release), issue/PR templates, Dependabot
 ```
 
 ## Roadmap
@@ -235,12 +249,13 @@ Spinning real-time threads can starve kernel threads; keep the priority below IR
 - [x] CPU, memory and IO load generators
 - [x] Histogram with min/avg/max/p50/p99/p99.9, ASCII view, CSV and JSON export
 - [x] Policy comparison mode, simulation and replay modes, CI with sanitizers
+- [x] Static analysis, CodeQL, coverage, API docs and tagged releases
 - [ ] Compare two exported JSON files offline
 - [ ] Per-thread histograms in the JSON export
 - [ ] Optional ftrace marker on worst-case latency
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](https://github.com/bekirhankarakurt/rt-latency-bench/blob/main/LICENSE).
 
 Bekirhan Karakurt - [github.com/bekirhankarakurt](https://github.com/bekirhankarakurt)
