@@ -57,7 +57,7 @@ std::int64_t Histogram::percentile_ns(double pct) const noexcept {
     const double clamped = std::min(std::max(pct, 0.0), 100.0);
     // The epsilon keeps products such as 99.9% of 10000 from rounding up a rank.
     auto rank = static_cast<std::uint64_t>(
-        std::ceil(clamped / 100.0 * static_cast<double>(count_) - 1e-9));
+        std::ceil((clamped / 100.0 * static_cast<double>(count_)) - 1e-9));
     rank = std::min(std::max<std::uint64_t>(rank, 1), count_);
 
     std::uint64_t cumulative = 0;

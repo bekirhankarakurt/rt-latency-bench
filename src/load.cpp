@@ -51,7 +51,7 @@ void cpu_load(const std::atomic<bool>& stop) {
     std::atomic<std::uint64_t> sink{0};
     while (!stop.load(std::memory_order_relaxed)) {
         for (int i = 0; i < 100000; ++i) {
-            x = x * 6364136223846793005ULL + 1442695040888963407ULL;
+            x = (x * 6364136223846793005ULL) + 1442695040888963407ULL;
         }
         sink.store(x, std::memory_order_relaxed);
     }

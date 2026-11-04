@@ -20,7 +20,7 @@ Profile profile_for(Policy policy, std::size_t load_kinds) {
         case Policy::Rr: profile = {7.0, 1.8, 1.5e-4, 40.0}; break;
         case Policy::Other: profile = {45.0, 20.0, 2e-3, 500.0}; break;
     }
-    const double load = 1.0 + 0.6 * static_cast<double>(load_kinds);
+    const double load = 1.0 + (0.6 * static_cast<double>(load_kinds));
     profile.jitter_us *= load;
     profile.spike_probability *= load;
     profile.spike_us *= load;
@@ -43,7 +43,7 @@ std::uint64_t simulate_thread(const Config& config, unsigned thread_index, Polic
     const std::uint64_t samples = samples_per_thread(config);
     std::uint64_t overruns = 0;
     for (std::uint64_t i = 0; i < samples; ++i) {
-        double latency_us = profile.base_us + profile.jitter_us * exponential();
+        double latency_us = profile.base_us + (profile.jitter_us * exponential());
         if (uniform() < profile.spike_probability) {
             latency_us += profile.spike_us * (0.5 + exponential());
         }

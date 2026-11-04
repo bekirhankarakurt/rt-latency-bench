@@ -27,7 +27,7 @@ int native_policy(Policy policy) noexcept {
 std::int64_t now_ns() noexcept {
     timespec ts{};
     clock_gettime(CLOCK_MONOTONIC, &ts);
-    return static_cast<std::int64_t>(ts.tv_sec) * kNsPerSec + static_cast<std::int64_t>(ts.tv_nsec);
+    return (static_cast<std::int64_t>(ts.tv_sec) * kNsPerSec) + static_cast<std::int64_t>(ts.tv_nsec);
 }
 
 void sleep_until_ns(std::int64_t deadline_ns) noexcept {
