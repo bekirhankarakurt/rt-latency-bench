@@ -1,5 +1,6 @@
 #include "rtlb/cli.hpp"
 
+#include <algorithm>
 #include <array>
 #include <optional>
 #include <string_view>
@@ -24,26 +25,30 @@ constexpr std::array<std::string_view, 6> kFlags{
     "--mlock", "--histogram", "--simulate", "--help", "--version", "-h"};
 
 bool is_flag(std::string_view key) {
-    for (const std::string_view flag : kFlags) {
-        if (flag == key) return true;
-    }
-    return false;
+    return std::any_of(kFlags.begin(), kFlags.end(),
+                       [key](std::string_view flag) { return flag == key; });
 }
 
 template <class T>
 std::string number(std::string_view key, std::string_view value, T& out) {
-    return parse_integer(value, out) ? std::string{}
-                                     : "invalid number for " + std::string(key) + ": " + std::string(value);
+    return parse_integer(value, out)
+               ? std::string{}
+               : "invalid number for " + std::string(key) + ": " + std::string(value);
 }
 
-std::string apply(std::string_view key, std::string_view value, ParseResult& result) {
+// Each apply_* helper returns std::nullopt when it does not recognise the option.
+std::optional<std::string> apply_flag(std::string_view key, ParseResult& result) {
     Config& c = result.config;
-    if (key == "--mlock") { c.mlock = true; return {}; }
-    if (key == "--histogram") { c.histogram = true; return {}; }
-    if (key == "--simulate") { c.simulate = true; return {}; }
-    if (key == "--help" || key == "-h") { result.command = Command::Help; return {}; }
-    if (key == "--version" || key == "-V") { result.command = Command::Version; return {}; }
+    if (key == "--mlock") c.mlock = true;
+    else if (key == "--histogram") c.histogram = true;
+    else if (key == "--simulate") c.simulate = true;
+    else if (key == "--help" || key == "-h") result.command = Command::Help;
+    else if (key == "--version" || key == "-V") result.command = Command::Version;
+    else return std::nullopt;
+    return std::string{};
+}
 
+std::optional<std::string> apply_number(std::string_view key, std::string_view value, Config& c) {
     if (key == "--threads") return number(key, value, c.threads);
     if (key == "--interval") return number(key, value, c.interval_us);
     if (key == "--priority") return number(key, value, c.priority);
@@ -53,38 +58,85 @@ std::string apply(std::string_view key, std::string_view value, ParseResult& res
     if (key == "--max-us") return number(key, value, c.max_us);
     if (key == "--seed") return number(key, value, c.seed);
     if (key == "--duration") {
-        return parse_double(value, c.duration_s) ? std::string{}
-                                                 : "invalid number for --duration: " + std::string(value);
+        return parse_double(value, c.duration_s)
+                   ? std::string{}
+                   : "invalid number for --duration: " + std::string(value);
     }
     if (key == "--threshold-us") {
         double limit = 0.0;
-        if (!parse_double(value, limit)) return "invalid number for --threshold-us: " + std::string(value);
+        if (!parse_double(value, limit)) {
+            return "invalid number for --threshold-us: " + std::string(value);
+        }
         c.threshold_us = limit;
-        return {};
+        return std::string{};
     }
+    return std::nullopt;
+}
+
+std::optional<std::string> apply_choice(std::string_view key, std::string_view value, Config& c) {
     if (key == "--policy" || key == "--vs") {
         const auto policy = parse_policy(value);
         if (!policy) return "unknown policy '" + std::string(value) + "' (use fifo, rr or other)";
         (key == "--policy" ? c.policy : c.vs) = *policy;
-        return {};
+        return std::string{};
     }
     if (key == "--affinity") {
         auto cpus = parse_cpu_list(value);
         if (!cpus) return "invalid CPU list '" + std::string(value) + "' (example: 0,2-3)";
         c.cpus = std::move(*cpus);
-        return {};
+        return std::string{};
     }
     if (key == "--load") {
         auto loads = parse_loads(value);
         if (!loads) return "invalid load list '" + std::string(value) + "' (use cpu,mem,io or none)";
         c.loads = std::move(*loads);
-        return {};
+        return std::string{};
     }
-    if (key == "--io-dir") { c.io_dir = std::string(value); return {}; }
-    if (key == "--csv") { c.csv_path = std::string(value); return {}; }
-    if (key == "--json") { c.json_path = std::string(value); return {}; }
-    if (key == "--replay") { c.replay_path = std::string(value); return {}; }
+    return std::nullopt;
+}
+
+std::optional<std::string> apply_path(std::string_view key, std::string_view value, Config& c) {
+    if (key == "--io-dir") c.io_dir = std::string(value);
+    else if (key == "--csv") c.csv_path = std::string(value);
+    else if (key == "--json") c.json_path = std::string(value);
+    else if (key == "--replay") c.replay_path = std::string(value);
+    else return std::nullopt;
+    return std::string{};
+}
+
+std::string apply(std::string_view key, std::string_view value, ParseResult& result) {
+    Config& c = result.config;
+    for (const auto& handled : {apply_flag(key, result), apply_number(key, value, c),
+                                apply_choice(key, value, c), apply_path(key, value, c)}) {
+        if (handled) return *handled;
+    }
     return "unknown option: " + std::string(key);
+}
+
+std::string canonical(const std::string& key) {
+    const auto* const alias = std::find_if(kAliases.begin(), kAliases.end(),
+                                    [&key](const Alias& entry) { return key == entry.short_name; });
+    return alias == kAliases.end() ? key : std::string(alias->long_name);
+}
+
+// Handles one option starting at args[i]; advances i past a consumed value.
+std::string consume(const std::vector<std::string>& args, std::size_t& i, ParseResult& result) {
+    std::string key = args[i];
+    std::optional<std::string> value;
+    const std::size_t equals = key.find('=');
+    if (key.rfind("--", 0) == 0 && equals != std::string::npos) {
+        value = key.substr(equals + 1);
+        key.resize(equals);
+    }
+    key = canonical(key);
+    if (is_flag(key) || key == "-V") {
+        return apply(key, {}, result);
+    }
+    if (!value) {
+        if (i + 1 >= args.size()) return "missing value for " + key;
+        value = args[++i];
+    }
+    return apply(key, *value, result);
 }
 
 }  // namespace
@@ -97,32 +149,12 @@ ParseResult parse_args(const std::vector<std::string>& args) {
         i = 1;
     }
     for (; i < args.size(); ++i) {
-        std::string key = args[i];
-        std::optional<std::string> inline_value;
-        const std::size_t equals = key.find('=');
-        if (key.rfind("--", 0) == 0 && equals != std::string::npos) {
-            inline_value = key.substr(equals + 1);
-            key.resize(equals);
+        result.error = consume(args, i, result);
+        if (!result.error.empty() || result.command == Command::Help ||
+            result.command == Command::Version) {
+            return result;
         }
-        for (const Alias& alias : kAliases) {
-            if (key == alias.short_name) key = std::string(alias.long_name);
-        }
-        std::string value;
-        if (!is_flag(key) && key != "-V") {
-            if (inline_value) {
-                value = *inline_value;
-            } else if (i + 1 < args.size()) {
-                value = args[++i];
-            } else {
-                result.error = "missing value for " + key;
-                return result;
-            }
-        }
-        result.error = apply(key, value, result);
-        if (!result.error.empty()) return result;
-        if (result.command == Command::Help || result.command == Command::Version) return result;
     }
-
     if (result.command == Command::Compare &&
         (!result.config.csv_path.empty() || !result.config.json_path.empty())) {
         result.error = "compare does not support --csv or --json";

@@ -2,9 +2,8 @@
 
 #include <sched.h>
 #include <sys/mman.h>
-#include <time.h>
-
 #include <cerrno>
+#include <ctime>
 #include <system_error>
 
 namespace rtlb::platform {

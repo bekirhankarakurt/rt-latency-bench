@@ -15,7 +15,7 @@ constexpr int kExitRuntimeError = 1;
 constexpr int kExitUsage = 2;
 constexpr int kExitThreshold = 3;
 
-extern "C" void on_interrupt(int) { rtlb::request_stop(); }
+extern "C" void on_interrupt([[maybe_unused]] int signal_number) { rtlb::request_stop(); }
 
 void install_interrupt_handler() {
     struct sigaction action {};

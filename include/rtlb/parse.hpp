@@ -10,7 +10,7 @@
 
 namespace rtlb {
 
-// Parses the whole string as an integer; returns false on any trailing garbage.
+/// Parses the whole string as an integer; returns false on any trailing garbage.
 template <class T>
 [[nodiscard]] bool parse_integer(std::string_view text, T& out) noexcept {
     if (text.empty()) {
@@ -26,7 +26,7 @@ template <class T>
     return true;
 }
 
-// Parses the whole string as a finite decimal number.
+/// Parses the whole string as a finite decimal number.
 [[nodiscard]] inline bool parse_double(std::string_view text, double& out) {
     if (text.empty()) {
         return false;

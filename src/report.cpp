@@ -12,7 +12,7 @@ namespace {
 
 std::string fixed(double value, int digits) {
     std::array<char, 48> buffer{};
-    std::snprintf(buffer.data(), buffer.size(), "%.*f", digits, value);
+    static_cast<void>(std::snprintf(buffer.data(), buffer.size(), "%.*f", digits, value));
     return buffer.data();
 }
 
@@ -44,7 +44,8 @@ std::string json_escape(const std::string& text) {
             default:
                 if (static_cast<unsigned char>(c) < 0x20) {
                     std::array<char, 8> escape{};
-                    std::snprintf(escape.data(), escape.size(), "\\u%04x", static_cast<unsigned>(c));
+                    static_cast<void>(std::snprintf(escape.data(), escape.size(), "\\u%04x",
+                                                    static_cast<unsigned>(c)));
                     out += escape.data();
                 } else {
                     out += c;
@@ -64,6 +65,7 @@ struct Row {
 
 std::vector<Row> rows_of(const Report& report) {
     std::vector<Row> rows;
+    rows.reserve(report.threads.size() + 1);
     for (const ThreadResult& t : report.threads) {
         rows.push_back({std::to_string(t.id), t.cpu < 0 ? "-1" : std::to_string(t.cpu),
                         describe_policy(t.policy, t.priority), to_string(t.policy), t.priority,
@@ -152,9 +154,14 @@ void print_histogram(std::ostream& out, const Report& report) {
         const auto edge = [&kEdgesUs](std::size_t index) {
             return std::to_string(static_cast<int>(kEdgesUs[index]));
         };
-        const std::string label = i == 0                 ? "0 - " + edge(0)
-                                  : i == kEdgesUs.size() ? ">= " + edge(i - 1)
-                                                         : edge(i - 1) + " - " + edge(i);
+        std::string label;
+        if (i == 0) {
+            label = "0 - " + edge(0);
+        } else if (i == kEdgesUs.size()) {
+            label = ">= " + edge(i - 1);
+        } else {
+            label = edge(i - 1) + " - " + edge(i);
+        }
         const double scale = std::log10(1.0 + static_cast<double>(rows[i])) /
                              std::log10(1.0 + static_cast<double>(peak));
         const auto length = rows[i] == 0 ? 0 : std::max(1, static_cast<int>(std::lround(scale * kBarWidth)));
@@ -209,40 +216,45 @@ void write_csv(std::ostream& out, const Report& report) {
 
 void write_json(std::ostream& out, const Report& report) {
     const Config& c = report.config;
-    out << "{\n  \"tool\": \"rt-latency-bench\",\n  \"version\": \"" << RTLB_VERSION
-        << "\",\n  \"mode\": \"" << to_string(report.mode) << "\",\n  \"config\": {"
-        << "\"threads\": " << c.threads << ", \"interval_us\": " << c.interval_us
-        << ", \"duration_s\": " << fixed(c.duration_s, 3) << ", \"policy\": \"" << to_string(c.policy)
-        << "\", \"priority\": " << c.priority << ", \"mlock\": " << (c.mlock ? "true" : "false")
-        << ", \"loads\": [";
+    out << "{\n"
+        << R"(  "tool": "rt-latency-bench",)" << "\n"
+        << R"(  "version": ")" << RTLB_VERSION << R"(",)" << "\n"
+        << R"(  "mode": ")" << to_string(report.mode) << R"(",)" << "\n"
+        << R"(  "config": {"threads": )" << c.threads << R"(, "interval_us": )" << c.interval_us
+        << R"(, "duration_s": )" << fixed(c.duration_s, 3) << R"(, "policy": ")" << to_string(c.policy)
+        << R"(", "priority": )" << c.priority << R"(, "mlock": )" << (c.mlock ? "true" : "false")
+        << R"(, "loads": [)";
     for (std::size_t i = 0; i < c.loads.size(); ++i) {
-        out << (i ? ", " : "") << '"' << to_string(c.loads[i]) << '"';
+        out << (i != 0 ? ", " : "") << '"' << to_string(c.loads[i]) << '"';
     }
-    out << "], \"bucket_us\": " << c.bucket_us << ", \"max_us\": " << c.max_us
-        << ", \"seed\": " << c.seed << "},\n  \"warnings\": [";
+    out << R"(], "bucket_us": )" << c.bucket_us << R"(, "max_us": )" << c.max_us << R"(, "seed": )"
+        << c.seed << "},\n"
+        << R"(  "warnings": [)";
     for (std::size_t i = 0; i < report.warnings.size(); ++i) {
-        out << (i ? ", " : "") << '"' << json_escape(report.warnings[i]) << '"';
+        out << (i != 0 ? ", " : "") << '"' << json_escape(report.warnings[i]) << '"';
     }
     out << "],\n  \"threads\": [\n";
     const std::vector<Row> rows = rows_of(report);
     for (std::size_t i = 0; i + 1 < rows.size(); ++i) {
-        out << "    {\"id\": " << rows[i].thread << ", \"cpu\": " << rows[i].cpu << ", \"policy\": \""
-            << rows[i].policy_name << "\", \"priority\": " << rows[i].priority << ", ";
+        out << R"(    {"id": )" << rows[i].thread << R"(, "cpu": )" << rows[i].cpu << R"(, "policy": ")"
+            << rows[i].policy_name << R"(", "priority": )" << rows[i].priority << ", ";
         json_stats(out, rows[i].stats, rows[i].overruns);
         out << (i + 2 < rows.size() ? "},\n" : "}\n");
     }
-    out << "  ],\n  \"total\": {";
+    out << "  ],\n"
+        << R"(  "total": {)";
     json_stats(out, rows.back().stats, rows.back().overruns);
     out << "},\n";
 
     const Histogram total = merged_histogram(report);
-    out << "  \"histogram\": {\"bucket_us\": " << c.bucket_us << ", \"overflow\": " << total.overflow()
-        << ", \"bins\": [";
+    out << R"(  "histogram": {"bucket_us": )" << c.bucket_us << R"(, "overflow": )" << total.overflow()
+        << R"(, "bins": [)";
     bool first = true;
     for (std::size_t i = 0; i < total.bins().size(); ++i) {
         if (total.bins()[i] == 0) continue;
-        out << (first ? "" : ", ") << '[' << us3(static_cast<double>(i) * static_cast<double>(total.bucket_ns()))
-            << ", " << total.bins()[i] << ']';
+        out << (first ? "" : ", ") << '['
+            << us3(static_cast<double>(i) * static_cast<double>(total.bucket_ns())) << ", "
+            << total.bins()[i] << ']';
         first = false;
     }
     out << "]}\n}\n";

@@ -8,8 +8,8 @@
 
 namespace rtlb {
 
-// RAII set of background load generators (CPU spin, memory sweep, file IO).
-// Threads start in the constructor and are stopped and joined in the destructor.
+/// RAII set of background load generators (CPU spin, memory sweep, file IO).
+/// Threads start in the constructor and are stopped and joined in the destructor.
 class LoadSet {
 public:
     explicit LoadSet(const Config& config);
@@ -17,6 +17,8 @@ public:
 
     LoadSet(const LoadSet&) = delete;
     LoadSet& operator=(const LoadSet&) = delete;
+    LoadSet(LoadSet&&) = delete;
+    LoadSet& operator=(LoadSet&&) = delete;
 
     [[nodiscard]] std::size_t thread_count() const noexcept { return threads_.size(); }
 
