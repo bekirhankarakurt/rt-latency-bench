@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: ${{ matrix.compiler }}
@@ -37,3 +40,90 @@ jobs:
         run: ctest --test-dir build --output-on-failure
       - name: Live smoke run
         run: ./build/rtlb --policy other --duration 2 --load cpu,mem,io
+
+  static-analysis:
+    name: clang-tidy + cppcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y clang-tidy cppcheck
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DRTLB_BUILD_TESTS=OFF
+      - name: clang-tidy
+        run: clang-tidy -p build --quiet src/*.cpp apps/*.cpp
+      - name: cppcheck
+        run: >
+          cppcheck --enable=warning,style,performance,portability --error-exitcode=1
+          --inline-suppr --suppressions-list=.cppcheck-suppressions --std=c++17
+          -I include --quiet src apps tests
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install gcovr
+        run: sudo apt-get update && sudo apt-get install -y gcovr
+      - name: Configure
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_FLAGS="--coverage -O0 -fprofile-update=atomic"
+          -DCMAKE_EXE_LINKER_FLAGS="--coverage"
+      - name: Build
+        run: cmake --build build -j
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+      - name: Report
+        run: |
+          mkdir -p site/coverage
+          gcovr -r . --filter 'src/' --filter 'include/' --exclude-throw-branches \
+            --gcov-ignore-parse-errors=negative_hits.warn_once_per_file \
+            --print-summary --json-summary summary.json \
+            --html-details site/coverage/index.html build | tee coverage.txt
+          python3 scripts/coverage_badge.py summary.json site/coverage.json
+          { echo '```'; cat coverage.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-site
+          path: site
+
+  docs:
+    name: API docs + site
+    needs: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Doxygen
+        run: sudo apt-get update && sudo apt-get install -y doxygen
+      - uses: actions/download-artifact@v4
+        with:
+          name: coverage-site
+          path: site
+      - name: Build API docs
+        run: |
+          mkdir -p docs
+          doxygen Doxyfile
+          mv docs/api/html site/api
+          cp docs/index.html site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: docs
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - id: deployment
+        uses: actions/deploy-pages@v4
