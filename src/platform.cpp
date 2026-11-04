@@ -93,7 +93,9 @@ Policy current_policy() noexcept {
 
 Outcome lock_memory() {
     if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) {
-        return {false, "mlockall: " + errno_text(errno)};
+        const int error = errno;
+        munlockall();  // a failed call may still leave MCL_FUTURE set
+        return {false, "mlockall: " + errno_text(error)};
     }
     return {};
 }
