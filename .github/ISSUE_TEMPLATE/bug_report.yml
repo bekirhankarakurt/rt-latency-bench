@@ -1,0 +1,32 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Include what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command line
+      description: The exact `rtlb` invocation.
+      render: bash
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: Paste the full output, including warnings.
+      render: text
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Kernel (`uname -r`), distribution, compiler, whether running privileged or in a VM/container.
+    validations:
+      required: true
